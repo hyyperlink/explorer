@@ -146,7 +146,7 @@ body {
 
 .tx-hash {
     font-family: 'Lekton', monospace;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--text-primary);
     text-decoration: none;
 }
@@ -318,4 +318,28 @@ body {
 .address,
 .search-bar {
     font-family: 'JetBrains Mono', monospace;
+}
+
+/* Raw JSON Display */
+.raw-json {
+    background: var(--bg-primary);
+    border-radius: 1em;
+    padding: 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    overflow-x: auto;
+}
+
+.raw-json .key {
+    color: var(--accent-secondary);
+}
+
+.raw-json .string {
+    color: var(--accent-primary);
+}
+
+.raw-json .number {
+    color: var(--accent-tertiary);
 } 

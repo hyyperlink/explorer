@@ -35,11 +35,22 @@
             </div>
         </div>
 
-        <!-- References -->
-        <div class="transaction-feed">
-            <div class="feed-header">References</div>
-            <div id="references">
-                <!-- Will be populated by JavaScript -->
+        <!-- Bottom Split Section -->
+        <div class="grid-row">
+            <!-- References -->
+            <div class="transaction-feed" style="margin-bottom: 0;">
+                <div class="feed-header">References</div>
+                <div id="references">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Raw Transaction -->
+            <div class="transaction-feed" style="margin-bottom: 0;">
+                <div class="feed-header">Raw Transaction</div>
+                <div id="raw-tx" class="raw-json">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
         </div>
 
@@ -145,6 +156,14 @@
                             </div>
                         `;
                     }
+
+                    // Raw Transaction JSON
+                    const rawJson = JSON.stringify(tx, null, 2)
+                        .replace(/"(\w+)":/g, '"<span class="key">$1</span>":')
+                        .replace(/"([^"]+)"(?=,|\n|\s*})/g, '"<span class="string">$1</span>"')
+                        .replace(/: (\d+)/g, ': <span class="number">$1</span>');
+                    
+                    document.getElementById('raw-tx').innerHTML = rawJson;
 
                     // Add attribution
                     document.getElementById('attribution').innerHTML = 
