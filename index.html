@@ -56,10 +56,6 @@
                 <div class="stat-label">Average Fee</div>
                 <div class="stat-value" id="average-fee">-</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Network Version</div>
-                <div class="stat-value" id="network-version">-</div>
-            </div>
         </div>
 
         <div class="transaction-feed">
@@ -138,7 +134,8 @@
                         `<span title="${formatNumber(data.data.total_supply)} HYY">${wholeSupply.toLocaleString()} HYY</span>`;
                     document.getElementById('burned-tokens').textContent = formatNumber(data.data.burned_tokens) + ' HYY';
                     document.getElementById('average-fee').textContent = formatNumber(data.data.average_fee) + ' HYY';
-                    document.getElementById('network-version').textContent = data.data.network_version;
+                    // Add network version to logo tooltip
+                    document.querySelector('.logo').title = data.data.network_version;
                 }
             }
 
