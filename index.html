@@ -177,11 +177,14 @@
                         
                         const changesHtml = tx.changes ? tx.changes.map(change => {
                             const type = change.instruction_type.replace('Instruction', '');
+                            const amount = type === 'MiningReward' ? 
+                                change.amount / 100000000 : // 8 decimals for mining reward
+                                change.amount;
                             return `
                                 <div class="transaction-change">
                                     <span class="change-icon">${getTransactionIcon(type.toLowerCase())}</span>
                                     <div class="change-details">
-                                        <span class="change-amount">${formatNumber(change.amount)} HYY</span>
+                                        <span class="change-amount">${formatNumber(amount)} HYY</span>
                                         <span class="change-type">${type}</span>
                                         ${change.to ? `<span>→ <a href="/account.html?address=${change.to}" style="color: inherit; text-decoration: none;">${change.to.substring(0, 8)}...</a></span>` : ''}
                                     </div>
