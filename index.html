@@ -85,13 +85,36 @@
 
         function getTransactionIcon(type) {
             const icons = {
-                mining: '👷',
+                // Basic operations
                 transfer: '💸',
-                swap: '🔄',
-                token: '🪙',
-                pool: '🌊'
+                miningreward: '⛏️',
+                tokengrant: '🎁',
+
+                // Token operations
+                createtoken: '🪙',
+                createnft: '🎨',
+                mintsupply: '📈',
+                burnsupply: '🔥',
+                transfernft: '🖼️',
+
+                // Freeze/Thaw operations
+                freezenft: '🥶',
+                thawnft: '🌡️',
+                freezeaccount: '❄️',
+                thawaccount: '☀️',
+                freezeamount: '🧊',
+                thawamount: '💧',
+
+                // Liquidity/Swap operations
+                swaptoken: '🔄',
+                addliquidity: '➕',
+                removeliquidity: '➖',
+                createliquiditypool: '🌊',
+
+                // Default for unknown types
+                unknown: '📦'
             };
-            return icons[type] || '📦';
+            return icons[type] || icons.unknown;
         }
 
         async function loadStats() {
