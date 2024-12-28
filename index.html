@@ -323,7 +323,7 @@
                             <div class="token-name">${token.name}</div>
                             <div class="token-meta">
                                 <span class="token-ticker">${token.ticker}</span>
-                                <span class="token-supply">${formatNumber(token.total_supply)} supply</span>
+                                <span class="token-supply">${formatNumber(token.total_supply / Math.pow(10, token.decimals))} supply</span>
                             </div>
                         </div>
                     </div>
