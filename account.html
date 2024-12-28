@@ -224,9 +224,15 @@
                             </div>`;
                     } else {
                         amount = change.amount / Math.pow(10, tokenDecimals);
+                        const params = new URLSearchParams(window.location.search);
+                        const currentAddress = params.get('address');
+                        // Determine if this is an outgoing transaction from the current address
+                        const isOutgoing = tx.from === currentAddress;
+                        const amountColor = isOutgoing ? 'var(--accent-negative)' : 'var(--accent-positive)';
                         amountDisplay = `${formatNumber(amount)} ${change.instruction_data?.token_address ? 
                             `<a href="/token.html?id=${change.instruction_data.token_address.replace('tok:', '')}" style="text-decoration: none; color: inherit">${symbol}</a>` 
                             : symbol}`;
+                        amountDisplay = `<span style="color: ${amountColor}">${isOutgoing ? '-' : '+'}${amountDisplay}</span>`;
                     }
                 }
 
