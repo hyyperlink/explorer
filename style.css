@@ -16,7 +16,7 @@
 }
 
 body {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'JetBrains Mono', monospace;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.4;
@@ -298,4 +298,24 @@ body {
 
 .address {
     font-family: 'Lekton', monospace;
+}
+
+/* Headers and headings use Lekton */
+.logo-text,
+.feed-header,
+.stat-label,
+.section-title {
+    font-family: 'Lekton', monospace;
+}
+
+/* Everything else uses JetBrains Mono */
+.tx-hash,
+.tx-meta,
+.tx-amount,
+.pool-pairs,
+.token-name,
+.token-meta,
+.address,
+.search-bar {
+    font-family: 'JetBrains Mono', monospace;
 } 
