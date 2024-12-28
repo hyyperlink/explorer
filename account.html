@@ -66,14 +66,17 @@
             return icons[type] || '📦';
         }
 
-        async function loadAccount() {
+        let currentTransactionCursor = '';
+        let previousCursors = [];
+
+        async function loadHistory() {
             try {
                 const params = new URLSearchParams(window.location.search);
                 const address = params.get('address');
 
                 const [balanceResponse, historyResponse] = await Promise.all([
                     fetch(`${API_BASE}/balance/${address}`),
-                    fetch(`${API_BASE}/history/${address}`)
+                    fetch(`${API_BASE}/history/${address}?page_size=10${currentTransactionCursor ? `&cursor=${currentTransactionCursor}` : ''}`)
                 ]);
 
                 const balanceData = await balanceResponse.json();
@@ -105,7 +108,21 @@
                 }
 
                 if (historyData.success) {
-                    document.getElementById('history').innerHTML = historyData.data.transactions.map(tx => {
+                    const transactions = historyData.data.transactions;
+                    const nextCursor = historyData.data.next_cursor;
+
+                    if (transactions.length === 0) {
+                        document.getElementById('history').innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-icon">📦</div>
+                                <div class="empty-text">No transaction history</div>
+                                <div class="empty-subtext">Transactions will appear here</div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    let html = transactions.map(tx => {
                         const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                         return `
                             <div class="transaction" data-type="${type}">
@@ -124,15 +141,81 @@
                             </div>
                         `;
                     }).join('');
-                }
 
-                document.getElementById('attribution').innerHTML = 
-                    `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
+                    // Add pagination controls
+                    const currentPage = Math.floor(previousCursors.length / 10) + 1;
+                    const hasNext = !!nextCursor;
+                    const hasPrev = previousCursors.length > 0;
+
+                    html += `
+                        <div class="pagination">
+                            <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
+                            <span class="pagination-text">page ${currentPage}</span>
+                            <button class="pagination-btn" onclick="handleNextPage('${nextCursor}')" ${!hasNext ? 'disabled' : ''}>next</button>
+                        </div>
+                    `;
+
+                    document.getElementById('history').innerHTML = html;
+                }
 
             } catch (error) {
                 console.error('Error loading account:', error);
             }
         }
+
+        function handleNextPage(nextCursor) {
+            if (nextCursor) {
+                previousCursors.push(currentTransactionCursor);
+                currentTransactionCursor = nextCursor;
+                loadHistory();
+            }
+        }
+
+        function handlePrevPage() {
+            if (previousCursors.length > 0) {
+                currentTransactionCursor = previousCursors.pop();
+                loadHistory();
+            }
+        }
+
+        // Add this CSS to your existing styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .pagination {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
+                margin-top: 1rem;
+                padding: 0.5rem;
+            }
+
+            .pagination-btn {
+                background: var(--bg-card);
+                color: var(--text-primary);
+                border: 1px solid var(--text-secondary);
+                padding: 0.5rem 1rem;
+                border-radius: 0.5rem;
+                cursor: pointer;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+            }
+
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .pagination-btn:not(:disabled):hover {
+                background: var(--bg-hover);
+            }
+
+            .pagination-text {
+                color: var(--text-secondary);
+                font-size: 0.875rem;
+            }
+        `;
+        document.head.appendChild(style);
 
         document.querySelector('.search-bar').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -145,7 +228,7 @@
             }
         });
 
-        loadAccount();
+        loadHistory();
     </script>
 </body>
 </html> 

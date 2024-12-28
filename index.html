@@ -105,11 +105,15 @@
             }
         }
 
-        async function loadTransactions() {
-                const response = await fetch(`${API_BASE}/transactions/recent?page_size=10`);
+        let currentTransactionCursor = '';
+        let previousCursors = [];
+
+        async function loadTransactions(cursor = '') {
+                const response = await fetch(`${API_BASE}/transactions/recent?page_size=10${cursor ? `&cursor=${cursor}` : ''}`);
                 const data = await response.json();
                 if (data.success) {
                     const transactions = data.data.transactions || [];
+                    const nextCursor = data.data.next_cursor;
                     
                     if (transactions.length === 0) {
                         document.getElementById('transactions').innerHTML = `
@@ -122,48 +126,78 @@
                         return;
                     }
 
-                    document.getElementById('transactions').innerHTML = transactions.map(tx => {
-                    const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
-                    const change = tx.changes?.[0];
-                    
-                    // Parse instruction data if present
-                    let instructionData = {};
-                    if (change?.instruction_data) {
-                        try {
-                            instructionData = JSON.parse(change.instruction_data);
-                        } catch (e) {}
-                    }
+                    let html = transactions.map(tx => {
+                        const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
+                        const change = tx.changes?.[0];
+                        
+                        // Parse instruction data if present
+                        let instructionData = {};
+                        if (change?.instruction_data) {
+                            try {
+                                instructionData = JSON.parse(change.instruction_data);
+                            } catch (e) {}
+                        }
 
-                    // Format amount and token based on instruction type
-                    let amountDisplay = '';
-                    if (type === 'miningreward') {
-                        amountDisplay = `${formatNumber(change.amount / 100000000)} HYY`;
-                    } else if (type === 'transfer') {
-                        const tokenAddr = instructionData.token_address;
-                        const symbol = tokenAddr ? instructionData.symbol || 'TOKEN' : 'HYY';
-                        amountDisplay = `${formatNumber(change.amount)} ${symbol}`;
-                    } else if (type === 'swaptoken') {
-                        const fromSymbol = instructionData.from_token ? 'TOKEN' : 'HYY';
-                        const toSymbol = instructionData.to_token ? 'TOKEN' : 'HYY';
-                        amountDisplay = `${formatNumber(instructionData.amount_in)} ${fromSymbol} → ${formatNumber(instructionData.min_amount_out)} ${toSymbol}`;
-                    }
+                        // Format amount and token based on instruction type
+                        let amountDisplay = '';
+                        if (type === 'miningreward') {
+                            amountDisplay = `${formatNumber(change.amount / 100000000)} HYY`;
+                        } else if (type === 'transfer') {
+                            const tokenAddr = instructionData.token_address;
+                            const symbol = tokenAddr ? instructionData.symbol || 'TOKEN' : 'HYY';
+                            amountDisplay = `${formatNumber(change.amount)} ${symbol}`;
+                        } else if (type === 'swaptoken') {
+                            const fromSymbol = instructionData.from_token ? 'TOKEN' : 'HYY';
+                            const toSymbol = instructionData.to_token ? 'TOKEN' : 'HYY';
+                            amountDisplay = `${formatNumber(instructionData.amount_in)} ${fromSymbol} → ${formatNumber(instructionData.min_amount_out)} ${toSymbol}`;
+                        }
 
-                    return `
-                        <div class="transaction" data-type="${type}">
-                            <div class="tx-icon">${getTransactionIcon(type)}</div>
-                            <div class="tx-details">
-                                <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
-                                <div class="tx-meta">
-                                    ${formatDate(tx.timestamp)} · 
-                                    <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
-                                    <span style="color: var(--accent-secondary)">${type}</span>
-                                    ${change.to ? `→ <a href="/account.html?address=${change.to}" class="address" style="text-decoration: none;">${change.to.substring(0, 8)}...</a>` : ''}
+                        return `
+                            <div class="transaction" data-type="${type}">
+                                <div class="tx-icon">${getTransactionIcon(type)}</div>
+                                <div class="tx-details">
+                                    <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
+                                    <div class="tx-meta">
+                                        ${formatDate(tx.timestamp)} · 
+                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
+                                        <span style="color: var(--accent-secondary)">${type}</span>
+                                        ${change.to ? `→ <a href="/account.html?address=${change.to}" class="address" style="text-decoration: none;">${change.to.substring(0, 8)}...</a>` : ''}
+                                    </div>
                                 </div>
+                                <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
                             </div>
-                            <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
+                        `;
+                    }).join('');
+
+                    // Add pagination controls
+                    const currentPage = Math.floor(previousCursors.length / 10) + 1;
+                    const hasNext = !!nextCursor;
+                    const hasPrev = previousCursors.length > 0;
+
+                    html += `
+                        <div class="pagination">
+                            <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
+                            <span class="pagination-text">page ${currentPage}</span>
+                            <button class="pagination-btn" onclick="handleNextPage('${nextCursor}')" ${!hasNext ? 'disabled' : ''}>next</button>
                         </div>
                     `;
-                }).join('');
+
+                    document.getElementById('transactions').innerHTML = html;
+                    currentTransactionCursor = cursor;
+                }
+            }
+
+        function handleNextPage(nextCursor) {
+            if (nextCursor) {
+                previousCursors.push(currentTransactionCursor);
+                loadTransactions(nextCursor);
+            }
+        }
+
+        function handlePrevPage() {
+            if (previousCursors.length > 0) {
+                const prevCursor = previousCursors.pop();
+                loadTransactions(prevCursor);
             }
         }
 
@@ -196,7 +230,7 @@
                 if (pools.length === 0) {
                     document.getElementById('pools').innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-icon">🌊</div>
+                            <div class="empty-icon">��</div>
                             <div class="empty-text">No liquidity pools yet</div>
                             <div class="empty-subtext">Be the first to create one!</div>
                         </div>
@@ -255,6 +289,45 @@
                 `).join('');
             }
         }
+
+        // Add this CSS to your existing styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .pagination {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
+                margin-top: 1rem;
+                padding: 0.5rem;
+            }
+
+            .pagination-btn {
+                background: var(--bg-card);
+                color: var(--text-primary);
+                border: 1px solid var(--text-secondary);
+                padding: 0.5rem 1rem;
+                border-radius: 0.5rem;
+                cursor: pointer;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 0.875rem;
+            }
+
+            .pagination-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .pagination-btn:not(:disabled):hover {
+                background: var(--bg-hover);
+            }
+
+            .pagination-text {
+                color: var(--text-secondary);
+                font-size: 0.875rem;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
