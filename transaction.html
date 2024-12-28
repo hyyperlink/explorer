@@ -151,11 +151,10 @@
                                 <div class="transaction">
                                     <div class="tx-icon">🔗</div>
                                     <div class="tx-details">
-                                        <a href="/transaction.html?hash=${ref}" class="tx-hash">
+                                        <a href="/transaction.html?hash=${ref}" class="tx-hash" title="${ref}">
                                             <span class="ref-pill" style="background: ${bgColor}; color: ${textColor}">
-                                                ${ref.substring(0, 8)}
+                                                ${ref.substring(0, 8)}...
                                             </span>
-                                            <span style="color: var(--text-secondary)">${ref.substring(8)}</span>
                                         </a>
                                     </div>
                                 </div>
