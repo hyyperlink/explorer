@@ -118,18 +118,24 @@
         }
 
         async function loadStats() {
-                const response = await fetch(`${API_BASE}/stats`);
-                const data = await response.json();
-                if (data.success) {
-                document.getElementById('tx-count').textContent = data.data.transaction_count.toLocaleString();
-                document.getElementById('address-count').textContent = data.data.address_count.toLocaleString();
-                // Calculate actual supply: 100M (in atomic units) + mining rewards - burned tokens
-                const baseSupply = 100000000 * Math.pow(10, 8); // 100M with 8 decimal places
-                const currentSupply = (baseSupply + data.data.total_supply - data.data.burned_tokens) / Math.pow(10, 8);
-                document.getElementById('total-supply').textContent = formatNumber(currentSupply) + ' HYY';
-                document.getElementById('burned-tokens').textContent = formatNumber(data.data.burned_tokens / Math.pow(10, 8));
+                const [statsResponse, burnResponse] = await Promise.all([
+                    fetch(`${API_BASE}/stats`),
+                    fetch(`${API_BASE}/balance/000000000000`)
+                ]);
+                const statsData = await statsResponse.json();
+                const burnData = await burnResponse.json();
+                
+                if (statsData.success && burnData.success) {
+                    document.getElementById('tx-count').textContent = statsData.data.transaction_count.toLocaleString();
+                    document.getElementById('address-count').textContent = statsData.data.address_count.toLocaleString();
+                    // Calculate actual supply: 100M (in atomic units) + mining rewards - burned tokens
+                    const baseSupply = 100000000 * Math.pow(10, 8); // 100M with 8 decimal places
+                    const burnedTokens = burnData.data.balances[0].balance;
+                    const currentSupply = (baseSupply + statsData.data.total_supply - burnedTokens) / Math.pow(10, 8);
+                    document.getElementById('total-supply').textContent = formatNumber(currentSupply) + ' HYY';
+                    document.getElementById('burned-tokens').textContent = formatNumber(burnedTokens / Math.pow(10, 8));
+                }
             }
-        }
 
         let currentTransactionCursor = '';
         let previousCursors = [];
