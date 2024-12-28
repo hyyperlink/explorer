@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hyyperlink explorer</title>
+    <title>hyyperlink token</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Lekton:wght@400;700&display=swap" rel="stylesheet">
@@ -19,22 +19,39 @@
             <input type="text" class="search-bar" placeholder="Search by transaction or address...">
         </header>
 
-        <!-- Token Details -->
+        <!-- Token Overview -->
         <div class="transaction-feed">
             <div class="feed-header">Token Details</div>
-            <div id="token"></div>
+            <div id="token">
+                <!-- Will be populated by JavaScript -->
+            </div>
         </div>
+        <br>
 
-        <!-- Token Holders -->
+        <!-- Token Properties -->
         <div class="transaction-feed">
-            <div class="feed-header">Token Holders</div>
-            <div id="holders"></div>
+            <div class="feed-header">Properties</div>
+            <div id="properties">
+                <!-- Will be populated by JavaScript -->
+            </div>
         </div>
+        <br>
 
-        <!-- Token Transactions -->
+        <!-- Token Creator -->
         <div class="transaction-feed">
-            <div class="feed-header">Token Transactions</div>
-            <div id="transactions"></div>
+            <div class="feed-header">Creator Wallet</div>
+            <div id="creator">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        <br>
+
+        <!-- Token Metadata -->
+        <div class="transaction-feed">
+            <div class="feed-header">Metadata</div>
+            <div id="metadata" class="raw-json">
+                <!-- Will be populated by JavaScript -->
+            </div>
         </div>
 
         <div class="attribution" id="attribution"></div>
@@ -61,227 +78,154 @@
             return new Date(timestamp / 1000000).toLocaleString();
         }
 
-        function getTransactionIcon(type) {
-            const icons = {
-                // Basic operations
-                transfer: '💸',
-                miningreward: '⛏️',
-                tokengrant: '🎁',
-
-                // Token operations
-                createtoken: '🪙',
-                createnft: '🎨',
-                mintsupply: '📈',
-                burnsupply: '🔥',
-                transfernft: '🖼️',
-
-                // Freeze/Thaw operations
-                freezenft: '🥶',
-                thawnft: '🌡️',
-                freezeaccount: '❄️',
-                thawaccount: '☀️',
-                freezeamount: '🧊',
-                thawamount: '💧',
-
-                // Liquidity/Swap operations
-                swaptoken: '🔄',
-                addliquidity: '➕',
-                removeliquidity: '➖',
-                createliquiditypool: '🌊',
-
-                // Default for unknown types
-                unknown: '📦'
-            };
-            return icons[type] || icons.unknown;
-        }
-
-        let currentTransactionCursor = '';
-        let previousCursors = [];
-        let currentPage = 1;
-        let pageSize = 10;
-        let tokenInfo = null;
-
         async function loadToken() {
+            const params = new URLSearchParams(window.location.search);
+            const tokenId = params.get('id');
+            
             try {
-                const params = new URLSearchParams(window.location.search);
-                const tokenId = params.get('id');
-
                 const response = await fetch(`${API_BASE}/token/${tokenId}`);
                 const data = await response.json();
-
+                
                 if (data.success) {
-                    tokenInfo = data.data;
+                    const token = data.data;
+                    const supply = token.total_supply / Math.pow(10, token.decimals);
+
+                    // Load creator wallet info
+                    const creatorResponse = await fetch(`${API_BASE}/balance/${token.creator}`);
+                    const creatorData = await creatorResponse.json();
+                    
+                    if (creatorData.success) {
+                        document.getElementById('creator').innerHTML = `
+                            <div class="transaction">
+                                <div class="tx-icon">👤</div>
+                                <div class="tx-details">
+                                    <a href="/account.html?address=${token.creator}" class="tx-hash">${token.creator}</a>
+                                    <div class="tx-meta">
+                                        ${creatorData.data.balances.map(balance => {
+                                            const amount = balance.balance / Math.pow(10, balance.decimals);
+                                            return `
+                                                <div style="margin-top: 0.5rem">
+                                                    <span style="color: var(--accent-primary)">${formatNumber(amount)}</span>
+                                                    ${balance.token_address ? 
+                                                        `<a href="/token.html?id=${balance.token_address.replace('tok:', '')}" style="text-decoration: none; color: var(--accent-secondary)">${balance.symbol}</a>
+                                                        <span style="color: var(--text-secondary)">· ${balance.token_address.replace('tok:', '').substring(0, 8)}...</span>` 
+                                                        : `<span style="color: var(--accent-secondary)">${balance.symbol}</span>`}
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // Token Overview
                     document.getElementById('token').innerHTML = `
                         <div class="transaction">
                             <div class="tx-icon">🪙</div>
                             <div class="tx-details">
-                                <div class="tx-hash">${tokenInfo.name}</div>
+                                <div class="tx-hash">${token.name}</div>
                                 <div class="tx-meta">
-                                    <div style="margin-top: 0.5rem">
-                                        <span style="color: var(--accent-primary)">${formatNumber(tokenInfo.total_supply / Math.pow(10, tokenInfo.decimals))}</span>
-                                        <span style="color: var(--accent-secondary)">${tokenInfo.ticker}</span>
-                                        <span style="color: var(--text-secondary)">total supply</span>
-                                    </div>
-                                    <div style="margin-top: 0.5rem">
-                                        <span style="color: var(--text-secondary)">Created by</span>
-                                        <a href="/account.html?address=${tokenInfo.creator}" class="address" style="text-decoration: none;">${tokenInfo.creator.substring(0, 8)}...</a>
-                                        <span style="color: var(--text-secondary)">on</span>
-                                        <span>${formatDate(tokenInfo.created_at)}</span>
-                                    </div>
-                                    <div style="margin-top: 0.5rem">
-                                        <span style="color: var(--text-secondary)">Decimals:</span>
-                                        <span style="color: var(--accent-primary)">${tokenInfo.decimals}</span>
-                                        ${tokenInfo.mintable ? '<span class="tag">Mintable</span>' : ''}
-                                        ${tokenInfo.freezable ? '<span class="tag">Freezable</span>' : ''}
-                                    </div>
-                                    ${tokenInfo.uri ? `
-                                        <div style="margin-top: 0.5rem">
-                                            <span style="color: var(--text-secondary)">URI:</span>
-                                            <a href="${tokenInfo.uri}" target="_blank" style="color: var(--accent-primary)">${tokenInfo.uri}</a>
-                                        </div>
-                                    ` : ''}
+                                    <span style="color: var(--accent-primary)">${token.ticker}</span> · 
+                                    <span style="color: var(--text-secondary)">${token.id}</span>
+                                </div>
+                                <div class="tx-meta" style="margin-top: 0.5rem">
+                                    <span style="color: var(--accent-primary)">${formatNumber(supply)}</span> total supply · 
+                                    <span style="color: var(--text-secondary)">${token.decimals} decimals</span>
                                 </div>
                             </div>
                         </div>
                     `;
 
-                    // Load initial transactions
-                    loadTransactions();
+                    // Token Properties
+                    document.getElementById('properties').innerHTML = `
+                        <div class="transaction">
+                            <div class="tx-details">
+                                <div class="tx-meta">
+                                    <div style="margin: 0.5rem 0">
+                                        <span style="color: var(--text-secondary)">Created by:</span>
+                                        <a href="/account.html?address=${token.creator}" class="address" style="text-decoration: none; color: var(--accent-primary)">${token.creator}</a>
+                                    </div>
+                                    <div style="margin: 0.5rem 0">
+                                        <span style="color: var(--text-secondary)">Created at:</span>
+                                        <span style="color: var(--accent-primary)">${formatDate(token.created_at)}</span>
+                                    </div>
+                                    ${token.mintable ? `
+                                        <div style="margin: 0.5rem 0">
+                                            <span style="color: var(--text-secondary)">Mint authority:</span>
+                                            <a href="/account.html?address=${token.mint_authority}" class="address" style="text-decoration: none; color: var(--accent-primary)">${token.mint_authority}</a>
+                                        </div>
+                                    ` : ''}
+                                    ${token.freezable ? `
+                                        <div style="margin: 0.5rem 0">
+                                            <span style="color: var(--text-secondary)">Freeze authority:</span>
+                                            <a href="/account.html?address=${token.freeze_authority}" class="address" style="text-decoration: none; color: var(--accent-primary)">${token.freeze_authority}</a>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <div class="token-tags" style="margin-top: 1rem">
+                                    ${token.mintable ? '<span class="tag" style="background: rgba(0, 255, 157, 0.1); color: var(--accent-primary)">Mintable</span>' : ''}
+                                    ${token.freezable ? '<span class="tag" style="background: rgba(0, 255, 255, 0.1); color: var(--accent-tertiary)">Freezable</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Token Metadata
+                    const metadata = {
+                        name: token.name,
+                        ticker: token.ticker,
+                        decimals: token.decimals,
+                        total_supply: token.total_supply,
+                        uri: token.uri,
+                        avatar: token.avatar
+                    };
+
+                    const formattedJson = JSON.stringify(metadata, null, 2)
+                        .replace(/"(\w+)":/g, '"<span class="key">$1</span>":')
+                        .replace(/"([^"]+)"(?=,|\n|\s*})/g, '"<span class="string">$1</span>"')
+                        .replace(/: (\d+)/g, ': <span class="number">$1</span>');
+
+                    document.getElementById('metadata').innerHTML = formattedJson;
+
+                    // Add attribution
+                    document.getElementById('attribution').innerHTML = 
+                        `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
                 }
-
-                document.getElementById('attribution').innerHTML = 
-                    `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
-
             } catch (error) {
                 console.error('Error loading token:', error);
-                document.getElementById('token').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">❌</div>
-                        <div class="empty-text">Error loading token details</div>
-                        <div class="empty-subtext">Please try again later</div>
-                    </div>
-                `;
             }
         }
 
-        async function loadTransactions(cursor = '') {
-            if (!tokenInfo) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/transactions/recent?page_size=${pageSize}${cursor ? `&cursor=${cursor}` : ''}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    const transactions = (data.data.transactions || []).filter(tx => {
-                        // Filter transactions related to this token
-                        return tx.changes.some(change => {
-                            if (!change.instruction_data) return false;
-                            const data = change.instruction_data;
-                            return data.token_address === tokenInfo.id;
-                        });
-                    });
-
-                    if (transactions.length === 0) {
-                        document.getElementById('transactions').innerHTML = `
-                            <div class="empty-state">
-                                <div class="empty-icon">📦</div>
-                                <div class="empty-text">No transactions yet</div>
-                                <div class="empty-subtext">Token transactions will appear here</div>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    let transactionPromises = transactions.map(async tx => {
-                        const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
-                        const change = tx.changes?.[0];
-                        let amountDisplay = '';
-
-                        if (change) {
-                            const amount = change.amount / Math.pow(10, tokenInfo.decimals);
-                            amountDisplay = `${formatNumber(amount)} ${tokenInfo.ticker}`;
-                        }
-
-                        return `
-                            <div class="transaction" data-type="${type}">
-                                <div class="tx-icon">${getTransactionIcon(type)}</div>
-                                <div class="tx-details">
-                                    <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
-                                    <div class="tx-meta">
-                                        ${formatDate(tx.timestamp)} · 
-                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee / 100000000)} HYY</span> fee · 
-                                        <span style="color: var(--accent-secondary)">${type}</span>
-                                        ${change.to ? `→ <a href="/account.html?address=${change.to}" class="address" style="text-decoration: none;">${change.to.substring(0, 8)}...</a>` : ''}
-                                    </div>
-                                </div>
-                                <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
-                            </div>
-                        `;
-                    });
-
-                    // Wait for all promises to resolve
-                    Promise.all(transactionPromises).then(resolvedHtml => {
-                        const html = resolvedHtml.join('');
-
-                        const hasNext = !!data.data.next_cursor;
-                        const hasPrev = previousCursors.length > 0;
-
-                        const paginationHtml = `
-                            <div class="pagination">
-                                <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
-                                <span class="pagination-text">page ${currentPage}</span>
-                                <button class="pagination-btn" onclick="handleNextPage('${data.data.next_cursor}')" ${!hasNext ? 'disabled' : ''}>next</button>
-                            </div>
-                        `;
-
-                        document.getElementById('transactions').innerHTML = html + paginationHtml;
-                    });
-
-                    currentTransactionCursor = cursor;
+        // Search functionality
+        document.querySelector('.search-bar').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    window.location.href = query.length === 64 ? 
+                        `/transaction.html?hash=${query}` : 
+                        `/account.html?address=${query}`;
                 }
-            } catch (error) {
-                console.error('Error loading transactions:', error);
-                document.getElementById('transactions').innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">❌</div>
-                        <div class="empty-text">Error loading transactions</div>
-                        <div class="empty-subtext">Please try again later</div>
-                    </div>
-                `;
             }
-        }
+        });
 
-        function handleNextPage(nextCursor) {
-            if (nextCursor) {
-                previousCursors.push(currentTransactionCursor);
-                currentPage++;
-                loadTransactions(nextCursor);
-            }
-        }
-
-        function handlePrevPage() {
-            if (previousCursors.length > 0) {
-                currentPage--;
-                const prevCursor = previousCursors.pop();
-                loadTransactions(prevCursor);
-            }
-        }
-
-        // Add this CSS to your existing styles
+        // Add token tag styles
         const style = document.createElement('style');
         style.textContent = `
+            .token-tags {
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+            }
+
             .tag {
-                background: var(--bg-card);
-                color: var(--accent-primary);
                 padding: 0.25rem 0.5rem;
-                border-radius: 0.25rem;
+                border-radius: 1em;
                 font-size: 0.75rem;
-                margin-left: 0.5rem;
             }
         `;
         document.head.appendChild(style);
 
-        // Initialize
         loadToken();
     </script>
 </body>
