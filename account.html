@@ -69,6 +69,8 @@
         let currentTransactionCursor = '';
         let previousCursors = [];
         let currentPage = 1;
+        let cachedTransactions = [];
+        let pageSize = 10;
 
         async function loadHistory(cursor = '') {
             try {
@@ -77,7 +79,7 @@
 
                 const [balanceResponse, historyResponse] = await Promise.all([
                     fetch(`${API_BASE}/balance/${address}`),
-                    fetch(`${API_BASE}/history/${address}?page_size=10${cursor ? `&cursor=${cursor}` : ''}`)
+                    fetch(`${API_BASE}/history/${address}?page_size=100${cursor ? `&cursor=${cursor}` : ''}`)
                 ]);
 
                 const balanceData = await balanceResponse.json();
@@ -109,10 +111,10 @@
                 }
 
                 if (historyData.success) {
-                    const transactions = historyData.data.transactions;
-                    const nextCursor = historyData.data.next_cursor;
+                    cachedTransactions = historyData.data.transactions || [];
+                    currentTransactionCursor = historyData.data.next_cursor || '';
 
-                    if (!transactions || transactions.length === 0) {
+                    if (cachedTransactions.length === 0) {
                         document.getElementById('history').innerHTML = `
                             <div class="empty-state">
                                 <div class="empty-icon">📦</div>
@@ -123,39 +125,7 @@
                         return;
                     }
 
-                    let html = transactions.map(tx => {
-                        const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
-                        return `
-                            <div class="transaction" data-type="${type}">
-                                <div class="tx-icon">${getTransactionIcon(type)}</div>
-                                <div class="tx-details">
-                                    <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
-                                    <div class="tx-meta">
-                                        ${formatDate(tx.timestamp)} · 
-                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee / 100000000)} HYY</span> fee · 
-                                        <span style="color: var(--accent-secondary)">${type}</span>
-                                    </div>
-                                </div>
-                                <div class="tx-amount" style="color: var(--accent-primary)">
-                                    ${formatNumber((tx.changes?.[0]?.amount || 0) / 100000000)} HYY
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-
-                    const hasNext = !!nextCursor;
-                    const hasPrev = previousCursors.length > 0;
-
-                    html += `
-                        <div class="pagination">
-                            <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
-                            <span class="pagination-text">page ${currentPage}</span>
-                            <button class="pagination-btn" onclick="handleNextPage('${nextCursor}')" ${!hasNext ? 'disabled' : ''}>next</button>
-                        </div>
-                    `;
-
-                    document.getElementById('history').innerHTML = html;
-                    currentTransactionCursor = cursor;
+                    displayCurrentPage();
                 }
 
                 document.getElementById('attribution').innerHTML = 
@@ -173,20 +143,61 @@
             }
         }
 
-        function handleNextPage(nextCursor) {
-            if (nextCursor) {
-                previousCursors.push(currentTransactionCursor);
+        function displayCurrentPage() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageTransactions = cachedTransactions.slice(start, end);
+
+            let html = pageTransactions.map(tx => {
+                const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
+                return `
+                    <div class="transaction" data-type="${type}">
+                        <div class="tx-icon">${getTransactionIcon(type)}</div>
+                        <div class="tx-details">
+                            <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
+                            <div class="tx-meta">
+                                ${formatDate(tx.timestamp)} · 
+                                <span style="color: var(--accent-primary)">${formatNumber(tx.fee / 100000000)} HYY</span> fee · 
+                                <span style="color: var(--accent-secondary)">${type}</span>
+                            </div>
+                        </div>
+                        <div class="tx-amount" style="color: var(--accent-primary)">
+                            ${formatNumber((tx.changes?.[0]?.amount || 0) / 100000000)} HYY
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const hasNext = end < cachedTransactions.length || currentTransactionCursor;
+            const hasPrev = currentPage > 1;
+
+            html += `
+                <div class="pagination">
+                    <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
+                    <span class="pagination-text">page ${currentPage}</span>
+                    <button class="pagination-btn" onclick="handleNextPage()" ${!hasNext ? 'disabled' : ''}>next</button>
+                </div>
+            `;
+
+            document.getElementById('history').innerHTML = html;
+        }
+
+        function handleNextPage() {
+            const start = currentPage * pageSize;
+            // If we're about to go beyond our cached transactions and we have a cursor
+            if (start >= cachedTransactions.length && currentTransactionCursor) {
+                loadHistory(currentTransactionCursor);
+                currentPage = 1;
+            } else if (start < cachedTransactions.length) {
                 currentPage++;
-                currentTransactionCursor = nextCursor;
-                loadHistory(nextCursor);
+                displayCurrentPage();
             }
         }
 
         function handlePrevPage() {
-            if (previousCursors.length > 0) {
+            if (currentPage > 1) {
                 currentPage--;
-                currentTransactionCursor = previousCursors.pop();
-                loadHistory(currentTransactionCursor);
+                displayCurrentPage();
             }
         }
 
