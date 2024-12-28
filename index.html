@@ -19,7 +19,23 @@
             <input type="text" class="search-bar" placeholder="Search by transaction or address...">
         </header>
 
+
+        <div class="grid-row">
+            <!-- Top 4 Pools by TVL -->
+            <div class="pools-feed">
+                <div class="feed-header">Top Pools</div>
+                <div id="pools"></div>
+            </div>
+            
+            <!-- Latest 4 Tokens -->
+            <div class="tokens-feed">
+                <div class="feed-header">Recent Tokens</div>
+                <div id="tokens"></div>
+            </div>
+        </div>
+
         <div class="stats-grid">
+            
             <div class="stat-card">
                 <div class="stat-label">Total Transactions</div>
                 <div class="stat-value" id="tx-count">-</div>
@@ -95,18 +111,42 @@
             if (data.success) {
                 document.getElementById('transactions').innerHTML = data.data.map(tx => {
                     const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
-                    const amount = type === 'miningreward' ? 
-                        tx.changes[0].amount / 100000000 : 
-                        tx.changes?.[0]?.amount || 0;
+                    const change = tx.changes?.[0];
+                    
+                    // Parse instruction data if present
+                    let instructionData = {};
+                    if (change?.instruction_data) {
+                        try {
+                            instructionData = JSON.parse(change.instruction_data);
+                        } catch (e) {}
+                    }
+
+                    // Format amount and token based on instruction type
+                    let amountDisplay = '';
+                    if (type === 'miningreward') {
+                        amountDisplay = `${formatNumber(change.amount / 100000000)} HYY`;
+                    } else if (type === 'transfer') {
+                        const tokenAddr = instructionData.token_address;
+                        const symbol = tokenAddr ? instructionData.symbol || 'TOKEN' : 'HYY';
+                        amountDisplay = `${formatNumber(change.amount)} ${symbol}`;
+                    } else if (type === 'swaptoken') {
+                        const fromSymbol = instructionData.from_token ? 'TOKEN' : 'HYY';
+                        const toSymbol = instructionData.to_token ? 'TOKEN' : 'HYY';
+                        amountDisplay = `${formatNumber(instructionData.amount_in)} ${fromSymbol} → ${formatNumber(instructionData.min_amount_out)} ${toSymbol}`;
+                    }
 
                     return `
-                        <div class="transaction">
+                        <div class="transaction" data-type="${type}">
                             <div class="tx-icon">${getTransactionIcon(type)}</div>
                             <div class="tx-details">
                                 <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
-                                <div class="tx-meta">${formatDate(tx.timestamp)} · ${formatNumber(tx.fee)} HYY fee</div>
+                                <div class="tx-meta">
+                                    ${formatDate(tx.timestamp)} · 
+                                    <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
+                                    <span style="color: var(--accent-secondary)">${type}</span>
+                                </div>
                             </div>
-                            <div class="tx-amount">${formatNumber(amount)} HYY</div>
+                            <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
                         </div>
                     `;
                 }).join('');
@@ -125,13 +165,85 @@
         });
 
         async function initialize() {
-            await Promise.all([loadStats(), loadTransactions()]);
+            await Promise.all([loadStats(), loadTransactions(), loadPools(), loadTokens()]);
             document.getElementById('attribution').innerHTML = 
                 `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
         }
 
         initialize();
         setInterval(loadTransactions, 5000);
+
+        async function loadPools() {
+            const response = await fetch(`${API_BASE}/pools`);
+            const data = await response.json();
+            if (data.success) {
+                // Sort by TVL and take top 4
+                const topPools = data.data
+                    .sort((a, b) => b.tvl - a.tvl)
+                    .slice(0, 4);
+
+                if (topPools.length === 0) {
+                    document.getElementById('pools').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🌊</div>
+                            <div class="empty-text">No liquidity pools yet</div>
+                            <div class="empty-subtext">Be the first to create one!</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                document.getElementById('pools').innerHTML = topPools.map(pool => `
+                    <div class="pool-card">
+                        <div class="pool-pairs">
+                            <span class="token-symbol">HYY</span>
+                            <span class="pair-separator">-</span>
+                            <span class="token-symbol">${pool.token_b_info.ticker}</span>
+                        </div>
+                        <div class="pool-stats">
+                            <div class="stat">TVL: <span>${formatNumber(pool.tvl / 100000000)} HYY</span></div>
+                            <div class="stat">24h: <span>${formatNumber(pool.volume_24h / 100000000)} HYY</span></div>
+                            <div class="stat">APR: <span>${pool.apr.toFixed(1)}%</span></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function loadTokens() {
+            const response = await fetch(`${API_BASE}/tokens`);
+            const data = await response.json();
+            if (data.success) {
+                // Sort by creation date and take latest 4
+                const recentTokens = data.data
+                    .sort((a, b) => b.created_at - a.created_at)
+                    .slice(0, 4);
+
+                if (recentTokens.length === 0) {
+                    document.getElementById('tokens').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">🪙</div>
+                            <div class="empty-text">No tokens created yet</div>
+                            <div class="empty-subtext">Be the first to launch one!</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                document.getElementById('tokens').innerHTML = recentTokens.map(token => `
+                    <div class="token-card">
+                        <div class="token-icon">🪙</div>
+                        <div class="token-info">
+                            <div class="token-name">${token.name}</div>
+                            <div class="token-meta">
+                                <span class="token-ticker">${token.ticker}</span>
+                                <span class="token-supply">${formatNumber(token.total_supply)} supply</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
     </script>
 </body>
 </html>
