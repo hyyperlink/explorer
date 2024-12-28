@@ -68,6 +68,7 @@
 
         let currentTransactionCursor = '';
         let previousCursors = [];
+        let totalTransactionsSeen = 0;
 
         async function loadHistory() {
             try {
@@ -122,6 +123,10 @@
                         return;
                     }
 
+                    if (!previousCursors.includes(currentTransactionCursor)) {
+                        totalTransactionsSeen += transactions.length;
+                    }
+
                     let html = transactions.map(tx => {
                         const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                         return `
@@ -142,8 +147,7 @@
                         `;
                     }).join('');
 
-                    // Add pagination controls
-                    const currentPage = Math.floor(previousCursors.length / 10) + 1;
+                    const currentPage = Math.ceil(totalTransactionsSeen / 10);
                     const hasNext = !!nextCursor;
                     const hasPrev = previousCursors.length > 0;
 
@@ -173,6 +177,7 @@
 
         function handlePrevPage() {
             if (previousCursors.length > 0) {
+                totalTransactionsSeen -= 10;
                 currentTransactionCursor = previousCursors.pop();
                 loadHistory();
             }
