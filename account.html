@@ -62,7 +62,8 @@
         // Load account details and history
         async function loadAccount() {
             try {
-                const address = window.location.pathname.split('/').pop();
+                const params = new URLSearchParams(window.location.search);
+                const address = params.get('address');
                 const [balanceResponse, historyResponse] = await Promise.all([
                     fetch(`${API_BASE}/address/${address}/balance`),
                     fetch(`${API_BASE}/address/${address}/history`)
@@ -111,7 +112,7 @@
                                     </div>
                                     <div class="transaction-details">
                                         <div class="transaction-hash">
-                                            <a href="/transaction/${tx.hash}" style="color: inherit; text-decoration: none;">
+                                            <a href="/transaction.html?hash=${tx.hash}" style="color: inherit; text-decoration: none;">
                                                 ${tx.hash}
                                             </a>
                                         </div>
