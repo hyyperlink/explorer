@@ -109,7 +109,7 @@
                 const response = await fetch(`${API_BASE}/transactions/recent?limit=10`);
                 const data = await response.json();
                 if (data.success) {
-                    document.getElementById('transactions').innerHTML = data.data.map(tx => {
+                    document.getElementById('transactions').innerHTML = data.data.transactions.map(tx => {
                     const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                     const change = tx.changes?.[0];
                     
@@ -175,11 +175,11 @@
         setInterval(loadTransactions, 5000);
 
         async function loadPools() {
-            const response = await fetch(`${API_BASE}/pools`);
+            const response = await fetch(`${API_BASE}/pools?page_size=4`);
             const data = await response.json();
             if (data.success) {
                 // Sort by TVL and take top 4
-                const topPools = data.data
+                const topPools = data.data.pools
                     .sort((a, b) => b.tvl - a.tvl)
                     .slice(0, 4);
 
@@ -212,15 +212,12 @@
         }
 
         async function loadTokens() {
-            const response = await fetch(`${API_BASE}/tokens`);
+            const response = await fetch(`${API_BASE}/tokens?page_size=4`);
             const data = await response.json();
             if (data.success) {
-                // Sort by creation date and take latest 4
-                const recentTokens = data.data
-                    .sort((a, b) => b.created_at - a.created_at)
-                    .slice(0, 4);
+                const tokens = data.data.tokens;
 
-                if (recentTokens.length === 0) {
+                if (tokens.length === 0) {
                     document.getElementById('tokens').innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon">🪙</div>
@@ -231,7 +228,7 @@
                     return;
                 }
 
-                document.getElementById('tokens').innerHTML = recentTokens.map(token => `
+                document.getElementById('tokens').innerHTML = tokens.map(token => `
                     <div class="token-card">
                         <div class="token-icon">🪙</div>
                         <div class="token-info">
