@@ -28,6 +28,15 @@
         </div>
         <br>
 
+        <!-- Token Liquidity -->
+        <div class="transaction-feed">
+            <div class="feed-header">Liquidity Pools</div>
+            <div id="pools">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        <br>
+
         <!-- Token Properties -->
         <div class="transaction-feed">
             <div class="feed-header">Properties</div>
@@ -89,6 +98,42 @@
                 if (data.success) {
                     const token = data.data;
                     const supply = token.total_supply / Math.pow(10, token.decimals);
+
+                    // Load pools info
+                    const poolsResponse = await fetch(`${API_BASE}/pools`);
+                    const poolsData = await poolsResponse.json();
+                    
+                    if (poolsData.success) {
+                        // Filter pools that contain this token
+                        const tokenPools = poolsData.data.filter(pool => 
+                            pool.token_b === `tok:${tokenId}`
+                        );
+
+                        if (tokenPools.length > 0) {
+                            document.getElementById('pools').innerHTML = tokenPools.map(pool => `
+                                <div class="pool-card">
+                                    <div class="pool-pairs">
+                                        <span class="token-symbol">HYY</span>
+                                        <span class="pair-separator">-</span>
+                                        <span class="token-symbol">${pool.token_b_info.ticker}</span>
+                                    </div>
+                                    <div class="pool-stats">
+                                        <div class="stat">TVL: <span>${formatNumber(pool.tvl / 100000000)} HYY</span></div>
+                                        <div class="stat">24h: <span>${formatNumber(pool.volume_24h / 100000000)} HYY</span></div>
+                                        <div class="stat">APR: <span>${pool.apr.toFixed(1)}%</span></div>
+                                    </div>
+                                </div>
+                            `).join('');
+                        } else {
+                            document.getElementById('pools').innerHTML = `
+                                <div class="empty-state">
+                                    <div class="empty-icon">🌊</div>
+                                    <div class="empty-text">No liquidity pools yet</div>
+                                    <div class="empty-subtext">Be the first to create one!</div>
+                                </div>
+                            `;
+                        }
+                    }
 
                     // Load creator wallet info
                     const creatorResponse = await fetch(`${API_BASE}/balance/${token.creator}`);
