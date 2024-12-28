@@ -145,7 +145,7 @@ body {
 }
 
 .tx-hash {
-    font-family: 'Open Sans', sans-serif;
+    font-family: 'Lekton', monospace;
     font-size: 0.875rem;
     color: var(--text-primary);
     text-decoration: none;
@@ -294,4 +294,8 @@ body {
 .empty-subtext {
     color: var(--accent-primary);
     font-size: 0.75rem;
+}
+
+.address {
+    font-family: 'Lekton', monospace;
 } 

@@ -144,6 +144,7 @@
                                     ${formatDate(tx.timestamp)} · 
                                     <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
                                     <span style="color: var(--accent-secondary)">${type}</span>
+                                    ${change.to ? `→ <span class="address">${change.to.substring(0, 8)}...</span>` : ''}
                                 </div>
                             </div>
                             <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
