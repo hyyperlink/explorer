@@ -109,7 +109,7 @@
                 }
 
                 if (historyData.success) {
-                    const transactions = historyData.data.transactions || [];
+                    const transactions = historyData.data.transactions;
                     const nextCursor = historyData.data.next_cursor;
 
                     if (!transactions || transactions.length === 0) {
