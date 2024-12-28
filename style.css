@@ -185,11 +185,8 @@ body {
     display: grid;
     grid-template-columns: auto 1fr 2fr;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
     border-radius: 12px;
     background: var(--bg-primary);
-    margin-bottom: 0.25rem;
     transition: all 0.3s ease;
 }
 
@@ -236,7 +233,6 @@ body {
 
 .transaction-meta {
     display: flex;
-    gap: 1rem;
     color: var(--text-secondary);
     font-size: 0.75rem;
 }
