@@ -84,11 +84,18 @@
                             <div class="tx-details">
                                 <div class="tx-hash">${address}</div>
                                 <div class="tx-meta">
-                                    ${balanceData.data.balances.map(balance => `
-                                        <span style="color: var(--accent-primary)">
-                                            ${formatNumber(balance.balance / Math.pow(10, balance.decimals))} ${balance.symbol}
-                                        </span>
-                                    `).join(' · ')}
+                                    ${balanceData.data.balances.map(balance => {
+                                        const amount = balance.balance / Math.pow(10, balance.decimals);
+                                        return `
+                                            <div style="margin-top: 0.5rem">
+                                                <span style="color: var(--accent-primary)">${formatNumber(amount)}</span>
+                                                <span style="color: var(--accent-secondary)">${balance.symbol}</span>
+                                                ${balance.token_address ? 
+                                                    `<span style="color: var(--text-secondary)">· ${balance.token_address.substring(0, 8)}...</span>` 
+                                                    : ''}
+                                            </div>
+                                        `;
+                                    }).join('')}
                                 </div>
                             </div>
                         </div>
