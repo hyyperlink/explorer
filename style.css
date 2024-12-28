@@ -342,4 +342,20 @@ body {
 
 .raw-json .number {
     color: var(--accent-tertiary);
+}
+
+.ref-pill {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1em;
+    font-weight: 500;
+}
+
+/* Make reference links not change color on hover */
+.tx-hash {
+    text-decoration: none !important;
+}
+
+.tx-hash:hover .ref-pill {
+    filter: brightness(1.2);
 } 

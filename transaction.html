@@ -140,14 +140,27 @@
 
                     // References
                     if (tx.references && tx.references.length > 0) {
-                        document.getElementById('references').innerHTML = tx.references.map(ref => `
-                            <div class="transaction">
-                                <div class="tx-icon">🔗</div>
-                                <div class="tx-details">
-                                    <a href="/transaction.html?hash=${ref}" class="tx-hash">${ref}</a>
+                        document.getElementById('references').innerHTML = tx.references.map(ref => {
+                            // Generate a pastel color from first 6 chars of hash
+                            const colorSeed = ref.substring(0, 6);
+                            const hue = parseInt(colorSeed, 16) % 360;
+                            const bgColor = `hsla(${hue}, 100%, 50%, 0.1)`;
+                            const textColor = `hsl(${hue}, 100%, 80%)`;
+
+                            return `
+                                <div class="transaction">
+                                    <div class="tx-icon">🔗</div>
+                                    <div class="tx-details">
+                                        <a href="/transaction.html?hash=${ref}" class="tx-hash">
+                                            <span class="ref-pill" style="background: ${bgColor}; color: ${textColor}">
+                                                ${ref.substring(0, 8)}
+                                            </span>
+                                            <span style="color: var(--text-secondary)">${ref.substring(8)}</span>
+                                        </a>
+                                    </div>
                                 </div>
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     } else {
                         document.getElementById('references').innerHTML = `
                             <div class="empty-state">
