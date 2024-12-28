@@ -122,7 +122,7 @@
                                                 <span style="color: var(--accent-primary)">${formatNumber(amount)}</span>
                                                 ${balance.token_address ? 
                                                     `<a href="/token.html?id=${balance.token_address.replace('tok:', '')}" style="text-decoration: none; color: var(--accent-secondary)">${balance.symbol}</a>
-                                                    <span style="color: var(--text-secondary)">· ${balance.token_address.replace('tok:', '').substring(0, 8)}...</span>` 
+                                                    <span style="color: var(--text-secondary)">· ${balance.token_address.replace('tok:', '')}</span>` 
                                                     : `<span style="color: var(--accent-secondary)">${balance.symbol}</span>`}
                                             </div>
                                         `;
