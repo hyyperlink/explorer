@@ -111,7 +111,8 @@
                                 <div class="tx-hash">${tx.hash}</div>
                                 <div class="tx-meta">
                                     ${formatDate(tx.timestamp)} · 
-                                    <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee
+                                    <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee ·
+                                    From: <a href="/account.html?address=${tx.from}" class="address" style="text-decoration: none;">${tx.from.substring(0, 8)}...</a>
                                 </div>
                             </div>
                         </div>
@@ -132,7 +133,7 @@
                                 <div class="tx-details">
                                     <div class="tx-meta">
                                         <span style="color: var(--accent-secondary)">${change.instruction_type.replace('Instruction', '')}</span>
-                                        ${change.to ? `→ <span class="address">${change.to}</span>` : ''}
+                                        ${change.to ? `→ <a href="/account.html?address=${change.to}" class="address" style="text-decoration: none;">${change.to.substring(0, 8)}...</a>` : ''}
                                     </div>
                                 </div>
                                 <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
