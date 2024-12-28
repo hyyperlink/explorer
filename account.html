@@ -68,7 +68,7 @@
 
         let currentTransactionCursor = '';
         let previousCursors = [];
-        let totalTransactionsSeen = 0;
+        let currentPage = 1;
 
         async function loadHistory() {
             try {
@@ -123,10 +123,6 @@
                         return;
                     }
 
-                    if (!previousCursors.includes(currentTransactionCursor)) {
-                        totalTransactionsSeen += transactions.length;
-                    }
-
                     let html = transactions.map(tx => {
                         const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                         return `
@@ -147,7 +143,6 @@
                         `;
                     }).join('');
 
-                    const currentPage = Math.ceil(totalTransactionsSeen / 10);
                     const hasNext = !!nextCursor;
                     const hasPrev = previousCursors.length > 0;
 
@@ -170,6 +165,7 @@
         function handleNextPage(nextCursor) {
             if (nextCursor) {
                 previousCursors.push(currentTransactionCursor);
+                currentPage++;
                 currentTransactionCursor = nextCursor;
                 loadHistory();
             }
@@ -177,7 +173,7 @@
 
         function handlePrevPage() {
             if (previousCursors.length > 0) {
-                totalTransactionsSeen -= 10;
+                currentPage--;
                 currentTransactionCursor = previousCursors.pop();
                 loadHistory();
             }

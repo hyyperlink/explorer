@@ -107,6 +107,7 @@
 
         let currentTransactionCursor = '';
         let previousCursors = [];
+        let currentPage = 1;
 
         async function loadTransactions(cursor = '') {
                 const response = await fetch(`${API_BASE}/transactions/recent?page_size=10${cursor ? `&cursor=${cursor}` : ''}`);
@@ -170,7 +171,6 @@
                     }).join('');
 
                     // Add pagination controls
-                    const currentPage = Math.floor(previousCursors.length / 10) + 1;
                     const hasNext = !!nextCursor;
                     const hasPrev = previousCursors.length > 0;
 
@@ -190,14 +190,16 @@
         function handleNextPage(nextCursor) {
             if (nextCursor) {
                 previousCursors.push(currentTransactionCursor);
+                currentPage++;
                 loadTransactions(nextCursor);
             }
         }
 
         function handlePrevPage() {
             if (previousCursors.length > 0) {
-                const prevCursor = previousCursors.pop();
-                loadTransactions(prevCursor);
+                currentPage--;
+                currentTransactionCursor = previousCursors.pop();
+                loadTransactions(currentTransactionCursor);
             }
         }
 
