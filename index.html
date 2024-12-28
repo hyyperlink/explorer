@@ -428,17 +428,20 @@
                     hyyperlink<span class="version" id="version"></span>
                 </div>
             </a>
-            <div class="network-selector">
-                <select id="network" class="network-select">
-                    <option value="0">colibri</option>
-                    <option value="1">ox</option>
-                    <option value="2">rex</option>
-                </select>
-            </div>
             <div class="search-container">
                 <input type="text" class="search-bar" placeholder="Search by transaction or address...">
             </div>
         </header>
+
+        <!-- Add attribution text at bottom -->
+        <div id="attribution" style="
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            opacity: 0.8;
+        "></div>
 
         <!-- Network Stats -->
         <div class="network-stats" id="stats">
@@ -468,23 +471,25 @@
             "api.rex.testnet.hyyperlink.com"
         ];
 
-        // Get the last used network from localStorage or use a random one
-        const lastNetwork = localStorage.getItem('network') || Math.floor(Math.random() * API_ENDPOINTS.length);
-        let currentNetwork = parseInt(lastNetwork);
+        // Replace the network selection with random selection
+        const nodes = API_ENDPOINTS;
+        const selectedNode = nodes[Math.floor(Math.random() * nodes.length)];
         
-        // Set initial API base URL
-        let API_BASE = `https://${API_ENDPOINTS[currentNetwork]}/api/v1`;
+        // Set initial API base URL using random node
+        let API_BASE = `https://${selectedNode}/api/v1`;
 
-        // Set the network selector to the current network
-        document.getElementById('network').value = currentNetwork;
-
-        // Handle network changes
-        document.getElementById('network').addEventListener('change', (e) => {
-            currentNetwork = parseInt(e.target.value);
-            localStorage.setItem('network', currentNetwork);
-            API_BASE = `https://${API_ENDPOINTS[currentNetwork]}/api/v1`;
-            initialize(); // Reload all data with new endpoint
-        });
+        // Add attribution text after successful data load
+        async function initialize() {
+            await Promise.all([
+                loadStats(),
+                loadTransactions(),
+                loadTokens()
+            ]);
+            // Add attribution text after loading
+            const serverName = selectedNode.split('.')[1];
+            document.getElementById('attribution').innerHTML = 
+                `this data was served by <span style="color: #4ade80">${serverName}</span>`;
+        }
 
         // Utility functions
         function formatNumber(num, decimals = 8) {
@@ -661,15 +666,6 @@
                 }
             }
         });
-
-        // Initialize
-        async function initialize() {
-            await Promise.all([
-                loadStats(),
-                loadTransactions(),
-                loadTokens()
-            ]);
-        }
 
         initialize();
 
