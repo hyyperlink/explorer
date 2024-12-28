@@ -26,6 +26,7 @@
                 <!-- Will be populated by JavaScript -->
             </div>
         </div>
+        <br>
 
         <!-- Transaction Changes -->
         <div class="transaction-feed">
@@ -34,7 +35,8 @@
                 <!-- Will be populated by JavaScript -->
             </div>
         </div>
-
+        <br>
+        
         <!-- Bottom Split Section -->
         <div class="grid-row">
             <!-- References -->
@@ -151,10 +153,11 @@
                                 <div class="transaction">
                                     <div class="tx-icon">🔗</div>
                                     <div class="tx-details">
-                                        <a href="/transaction.html?hash=${ref}" class="tx-hash" title="${ref}">
+                                        <a href="/transaction.html?hash=${ref}" class="tx-hash">
                                             <span class="ref-pill" style="background: ${bgColor}; color: ${textColor}">
-                                                ${ref.substring(0, 8)}...
+                                                ${ref.substring(0, 8)}
                                             </span>
+                                            <span style="color: var(--text-secondary)">${ref.substring(8)}</span>
                                         </a>
                                     </div>
                                 </div>

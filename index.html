@@ -95,9 +95,9 @@
         }
 
         async function loadStats() {
-            const response = await fetch(`${API_BASE}/stats`);
-            const data = await response.json();
-            if (data.success) {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                if (data.success) {
                 document.getElementById('tx-count').textContent = data.data.transaction_count.toLocaleString();
                 document.getElementById('address-count').textContent = data.data.address_count.toLocaleString();
                 document.getElementById('total-supply').textContent = (100 + data.data.total_supply).toFixed(1) + 'M';
@@ -106,10 +106,10 @@
         }
 
         async function loadTransactions() {
-            const response = await fetch(`${API_BASE}/transactions/recent?limit=10`);
-            const data = await response.json();
-            if (data.success) {
-                document.getElementById('transactions').innerHTML = data.data.map(tx => {
+                const response = await fetch(`${API_BASE}/transactions/recent?limit=10`);
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('transactions').innerHTML = data.data.map(tx => {
                     const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                     const change = tx.changes?.[0];
                     
