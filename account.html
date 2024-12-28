@@ -70,14 +70,14 @@
         let previousCursors = [];
         let currentPage = 1;
 
-        async function loadHistory() {
+        async function loadHistory(cursor = '') {
             try {
                 const params = new URLSearchParams(window.location.search);
                 const address = params.get('address');
 
                 const [balanceResponse, historyResponse] = await Promise.all([
                     fetch(`${API_BASE}/balance/${address}`),
-                    fetch(`${API_BASE}/history/${address}?page_size=10${currentTransactionCursor ? `&cursor=${currentTransactionCursor}` : ''}`)
+                    fetch(`${API_BASE}/history/${address}?page_size=10${cursor ? `&cursor=${cursor}` : ''}`)
                 ]);
 
                 const balanceData = await balanceResponse.json();
@@ -178,7 +178,7 @@
                 previousCursors.push(currentTransactionCursor);
                 currentPage++;
                 currentTransactionCursor = nextCursor;
-                loadHistory();
+                loadHistory(nextCursor);
             }
         }
 
@@ -186,7 +186,7 @@
             if (previousCursors.length > 0) {
                 currentPage--;
                 currentTransactionCursor = previousCursors.pop();
-                loadHistory();
+                loadHistory(currentTransactionCursor);
             }
         }
 
