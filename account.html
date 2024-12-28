@@ -64,16 +64,18 @@
             try {
                 const params = new URLSearchParams(window.location.search);
                 const address = params.get('address');
+
+                // Fetch both balance and history in parallel
                 const [balanceResponse, historyResponse] = await Promise.all([
-                    fetch(`${API_BASE}/address/${address}/balance`),
-                    fetch(`${API_BASE}/address/${address}/history`)
+                    fetch(`${API_BASE}/balance/${address}`),
+                    fetch(`${API_BASE}/history/${address}`)
                 ]);
 
                 const balanceData = await balanceResponse.json();
                 const historyData = await historyResponse.json();
 
                 if (balanceData.success) {
-                    const balances = balanceData.data.balances;
+                    // Handle balances (supports multiple token balances)
                     document.getElementById('account').innerHTML = `
                         <h2 class="section-title">Account Details</h2>
                         <div class="detail-item" style="margin-bottom: 2rem;">
@@ -82,9 +84,9 @@
                         </div>
                         <h3 class="section-title">Balances</h3>
                         <div class="balance-grid">
-                            ${balances.map(balance => `
+                            ${balanceData.data.balances.map(balance => `
                                 <div class="balance-item">
-                                    <div class="balance-label">${balance.token_address ? balance.symbol : 'Native Token'}</div>
+                                    <div class="balance-label">${balance.symbol}</div>
                                     <div class="balance-value">
                                         ${formatNumber(balance.balance / Math.pow(10, balance.decimals))}
                                         <span class="balance-symbol">${balance.symbol}</span>
@@ -93,51 +95,38 @@
                             `).join('')}
                         </div>
                     `;
-                    
-                    // Add attribution text
-                    document.getElementById('attribution').innerHTML = 
-                        `this data was served by <span style="color: #4ade80">${selectedNode.split('.')[1]}</span>`;
                 }
 
                 if (historyData.success) {
-                    const transactions = historyData.data.transactions;
+                    // Handle transaction history
                     document.getElementById('history').innerHTML = `
                         <h2 class="section-title">Transaction History</h2>
-                        ${transactions.map(tx => {
-                            const type = getTransactionType(tx);
+                        ${historyData.data.transactions.map(tx => {
+                            const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                             return `
                                 <div class="transaction" data-type="${type}">
-                                    <div class="transaction-icon">
-                                        ${getTransactionIcon(type)}
-                                    </div>
-                                    <div class="transaction-details">
-                                        <div class="transaction-hash">
-                                            <a href="/transaction.html?hash=${tx.hash}" style="color: inherit; text-decoration: none;">
-                                                ${tx.hash}
-                                            </a>
-                                        </div>
-                                        <div class="transaction-meta">
-                                            <span>${formatDate(tx.timestamp)}</span>
-                                            <span class="transaction-amount">${formatNumber(tx.fee)} HYY fee</span>
+                                    <div class="tx-icon">${getTransactionIcon(type)}</div>
+                                    <div class="tx-details">
+                                        <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
+                                        <div class="tx-meta">
+                                            ${formatDate(tx.timestamp)} · 
+                                            <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
+                                            <span style="color: var(--accent-secondary)">${type}</span>
                                         </div>
                                     </div>
-                                    <div class="transaction-changes">
-                                        ${tx.changes.map(change => `
-                                            <div class="transaction-change">
-                                                <span class="change-icon">${getTransactionIcon(type)}</span>
-                                                <div class="change-details">
-                                                    <span class="change-amount">${formatNumber(change.amount)} HYY</span>
-                                                    <span class="change-type">${change.instruction_type.replace('Instruction', '')}</span>
-                                                    ${change.to ? `<span>→ ${change.to.substring(0, 8)}...</span>` : ''}
-                                                </div>
-                                            </div>
-                                        `).join('')}
+                                    <div class="tx-amount" style="color: var(--accent-primary)">
+                                        ${formatNumber(tx.changes?.[0]?.amount || 0)} HYY
                                     </div>
                                 </div>
                             `;
                         }).join('')}
                     `;
                 }
+
+                // Add attribution
+                document.getElementById('attribution').innerHTML = 
+                    `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
+
             } catch (error) {
                 console.error('Error loading account:', error);
             }
