@@ -171,8 +171,42 @@
             const end = start + pageSize;
             const pageTransactions = cachedTransactions.slice(start, end);
 
-            let html = pageTransactions.map(tx => {
+            let html = pageTransactions.map(async tx => {
                 const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
+                const change = tx.changes?.[0];
+                let amountDisplay = '';
+
+                if (change) {
+                    // Try to parse instruction data for token info
+                    let tokenDecimals = 8; // Default to HYY decimals
+                    let symbol = 'HYY';
+                    try {
+                        if (change.instruction_data) {
+                            const data = JSON.parse(change.instruction_data);
+                            // Get token info from API if we have a token address
+                            if (data.token_address) {
+                                const tokenResponse = await fetch(`${API_BASE}/token/${data.token_address}`);
+                                const tokenData = await tokenResponse.json();
+                                if (tokenData.success) {
+                                    tokenDecimals = tokenData.data.decimals;
+                                    symbol = tokenData.data.ticker;
+                                }
+                            } else if (data.decimals !== undefined) {
+                                tokenDecimals = data.decimals;
+                            }
+                            if (data.ticker) {
+                                symbol = data.ticker;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error parsing instruction data or fetching token info:', e);
+                    }
+
+                    // Format amount based on decimals
+                    const amount = change.amount / Math.pow(10, tokenDecimals);
+                    amountDisplay = `${formatNumber(amount)} ${symbol}`;
+                }
+
                 return `
                     <div class="transaction" data-type="${type}">
                         <div class="tx-icon">${getTransactionIcon(type)}</div>
@@ -185,24 +219,29 @@
                             </div>
                         </div>
                         <div class="tx-amount" style="color: var(--accent-primary)">
-                            ${formatNumber((tx.changes?.[0]?.amount || 0) / 100000000)} HYY
+                            ${amountDisplay}
                         </div>
                     </div>
                 `;
-            }).join('');
+            });
 
-            const hasNext = end < cachedTransactions.length || currentTransactionCursor;
-            const hasPrev = currentPage > 1;
+            // Wait for all promises to resolve
+            Promise.all(html).then(resolvedHtml => {
+                const finalHtml = resolvedHtml.join('');
 
-            html += `
-                <div class="pagination">
-                    <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
-                    <span class="pagination-text">page ${currentPage}</span>
-                    <button class="pagination-btn" onclick="handleNextPage()" ${!hasNext ? 'disabled' : ''}>next</button>
-                </div>
-            `;
+                const hasNext = end < cachedTransactions.length || currentTransactionCursor;
+                const hasPrev = currentPage > 1;
 
-            document.getElementById('history').innerHTML = html;
+                const paginationHtml = `
+                    <div class="pagination">
+                        <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
+                        <span class="pagination-text">page ${currentPage}</span>
+                        <button class="pagination-btn" onclick="handleNextPage()" ${!hasNext ? 'disabled' : ''}>next</button>
+                    </div>
+                `;
+
+                document.getElementById('history').innerHTML = finalHtml + paginationHtml;
+            });
         }
 
         function handleNextPage() {

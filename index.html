@@ -150,30 +150,40 @@
                         return;
                     }
 
-                    let html = transactions.map(tx => {
+                    let transactionPromises = transactions.map(async tx => {
                         const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                         const change = tx.changes?.[0];
-                        
-                        // Parse instruction data if present
-                        let instructionData = {};
-                        if (change?.instruction_data) {
-                            try {
-                                instructionData = JSON.parse(change.instruction_data);
-                            } catch (e) {}
-                        }
-
-                        // Format amount and token based on instruction type
                         let amountDisplay = '';
-                        if (type === 'miningreward') {
-                            amountDisplay = `${formatNumber(change.amount / 100000000)} HYY`;
-                        } else if (type === 'transfer') {
-                            const tokenAddr = instructionData.token_address;
-                            const symbol = tokenAddr ? instructionData.symbol || 'TOKEN' : 'HYY';
-                            amountDisplay = `${formatNumber(change.amount)} ${symbol}`;
-                        } else if (type === 'swaptoken') {
-                            const fromSymbol = instructionData.from_token ? 'TOKEN' : 'HYY';
-                            const toSymbol = instructionData.to_token ? 'TOKEN' : 'HYY';
-                            amountDisplay = `${formatNumber(instructionData.amount_in)} ${fromSymbol} → ${formatNumber(instructionData.min_amount_out)} ${toSymbol}`;
+
+                        if (change) {
+                            // Try to parse instruction data for token info
+                            let tokenDecimals = 8; // Default to HYY decimals
+                            let symbol = 'HYY';
+                            try {
+                                if (change.instruction_data) {
+                                    const data = JSON.parse(change.instruction_data);
+                                    // Get token info from API if we have a token address
+                                    if (data.token_address) {
+                                        const tokenResponse = await fetch(`${API_BASE}/token/${data.token_address}`);
+                                        const tokenData = await tokenResponse.json();
+                                        if (tokenData.success) {
+                                            tokenDecimals = tokenData.data.decimals;
+                                            symbol = tokenData.data.ticker;
+                                        }
+                                    } else if (data.decimals !== undefined) {
+                                        tokenDecimals = data.decimals;
+                                    }
+                                    if (data.ticker) {
+                                        symbol = data.ticker;
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error parsing instruction data or fetching token info:', e);
+                            }
+
+                            // Format amount based on decimals
+                            const amount = change.amount / Math.pow(10, tokenDecimals);
+                            amountDisplay = `${formatNumber(amount)} ${symbol}`;
                         }
 
                         return `
@@ -183,7 +193,7 @@
                                     <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
                                     <div class="tx-meta">
                                         ${formatDate(tx.timestamp)} · 
-                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
+                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee / 100000000)} HYY</span> fee · 
                                         <span style="color: var(--accent-secondary)">${type}</span>
                                         ${change.to ? `→ <a href="/account.html?address=${change.to}" class="address" style="text-decoration: none;">${change.to.substring(0, 8)}...</a>` : ''}
                                     </div>
@@ -191,21 +201,27 @@
                                 <div class="tx-amount" style="color: var(--accent-primary)">${amountDisplay}</div>
                             </div>
                         `;
-                    }).join('');
+                    });
 
-                    // Add pagination controls
-                    const hasNext = !!nextCursor;
-                    const hasPrev = previousCursors.length > 0;
+                    // Wait for all promises to resolve
+                    Promise.all(transactionPromises).then(resolvedHtml => {
+                        const html = resolvedHtml.join('');
 
-                    html += `
-                        <div class="pagination">
-                            <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
-                            <span class="pagination-text">page ${currentPage}</span>
-                            <button class="pagination-btn" onclick="handleNextPage('${nextCursor}')" ${!hasNext ? 'disabled' : ''}>next</button>
-                        </div>
-                    `;
+                        // Add pagination controls
+                        const hasNext = !!nextCursor;
+                        const hasPrev = previousCursors.length > 0;
 
-                    document.getElementById('transactions').innerHTML = html;
+                        const paginationHtml = `
+                            <div class="pagination">
+                                <button class="pagination-btn" onclick="handlePrevPage()" ${!hasPrev ? 'disabled' : ''}>prev</button>
+                                <span class="pagination-text">page ${currentPage}</span>
+                                <button class="pagination-btn" onclick="handleNextPage('${nextCursor}')" ${!hasNext ? 'disabled' : ''}>next</button>
+                            </div>
+                        `;
+
+                        document.getElementById('transactions').innerHTML = html + paginationHtml;
+                    });
+
                     currentTransactionCursor = cursor;
                 }
             }
