@@ -16,7 +16,7 @@
 }
 
 body {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Open Sans', sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.4;
@@ -107,6 +107,7 @@ body {
 }
 
 .feed-header {
+    font-family: 'Lekton', monospace;
     font-size: 0.875rem;
     color: var(--text-secondary);
     margin-bottom: 1rem;
@@ -144,7 +145,7 @@ body {
 }
 
 .tx-hash {
-    font-family: 'Lekton', monospace;
+    font-family: 'Open Sans', sans-serif;
     font-size: 0.875rem;
     color: var(--text-primary);
     text-decoration: none;
@@ -157,7 +158,7 @@ body {
 }
 
 .tx-amount {
-    font-family: 'Lekton', monospace;
+    font-family: 'Open Sans', sans-serif;
     font-size: 0.875rem;
     color: var(--accent-primary);
 }
@@ -217,7 +218,7 @@ body {
 }
 
 .pool-pairs {
-    font-family: 'Lekton', monospace;
+    font-family: 'Open Sans', sans-serif;
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
 }
