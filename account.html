@@ -109,10 +109,10 @@
                 }
 
                 if (historyData.success) {
-                    const transactions = historyData.data.transactions;
+                    const transactions = historyData.data.transactions || [];
                     const nextCursor = historyData.data.next_cursor;
 
-                    if (transactions.length === 0) {
+                    if (!transactions || transactions.length === 0) {
                         document.getElementById('history').innerHTML = `
                             <div class="empty-state">
                                 <div class="empty-icon">📦</div>
@@ -155,10 +155,21 @@
                     `;
 
                     document.getElementById('history').innerHTML = html;
+                    currentTransactionCursor = nextCursor;
                 }
+
+                document.getElementById('attribution').innerHTML = 
+                    `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
 
             } catch (error) {
                 console.error('Error loading account:', error);
+                document.getElementById('history').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <div class="empty-text">Error loading transaction history</div>
+                        <div class="empty-subtext">Please try again later</div>
+                    </div>
+                `;
             }
         }
 
@@ -214,6 +225,18 @@
             .pagination-text {
                 color: var(--text-secondary);
                 font-size: 0.875rem;
+            }
+
+            .tx-number {
+                color: var(--text-secondary);
+                font-size: 0.75rem;
+                min-width: 3rem;
+                text-align: right;
+                padding-right: 0.5rem;
+            }
+
+            .transaction {
+                grid-template-columns: auto auto 1fr auto;
             }
         `;
         document.head.appendChild(style);
