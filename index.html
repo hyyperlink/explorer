@@ -10,52 +10,40 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="grid-background"></div>
     <div class="container">
-        <!-- Header -->
         <header class="header">
             <a href="/" class="logo">
-                <svg viewBox="0 0 20 20">
-                    <path fill="#ffffff" d="M6.70247571,4412.07175 L12.0994757,4404.08575 C12.3864757,4403.69975 13.0004757,4403.90275 13.0004757,4404.38375 L13.0004757,4415.43475 C13.0004757,4415.82075 12.5804757,4416.06175 12.2474757,4415.86675 L6.85047571,4412.80175 C6.59347571,4412.65075 6.52447571,4412.31075 6.70247571,4412.07175 L6.70247571,4412.07175 Z" transform="translate(-60, -4400)"/>
-                </svg>
-                <div class="logo-text">
-                    hyyperlink<span class="version" id="version"></span>
-                </div>
+                <svg viewBox="0 0 20 20"><path fill="#ffffff" d="M6.70247571,4412.07175 L12.0994757,4404.08575 C12.3864757,4403.69975 13.0004757,4403.90275 13.0004757,4404.38375 L13.0004757,4415.43475 C13.0004757,4415.82075 12.5804757,4416.06175 12.2474757,4415.86675 L6.85047571,4412.80175 C6.59347571,4412.65075 6.52447571,4412.31075 6.70247571,4412.07175 L6.70247571,4412.07175 Z" transform="translate(-60, -4400)"/></svg>
+                <div class="logo-text">hyyperlink</div>
             </a>
-            <div class="search-container">
-                <input type="text" class="search-bar" placeholder="Search by transaction or address...">
-            </div>
+            <input type="text" class="search-bar" placeholder="Search by transaction or address...">
         </header>
 
-        <!-- Add attribution text at bottom -->
-        <div id="attribution" style="
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            opacity: 0.8;
-        "></div>
-
-        <!-- Network Stats -->
-        <div class="network-stats" id="stats">
-            <!-- Will be populated by JavaScript -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Transactions</div>
+                <div class="stat-value" id="tx-count">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Addresses</div>
+                <div class="stat-value" id="address-count">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Supply</div>
+                <div class="stat-value" id="total-supply">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Burned Tokens</div>
+                <div class="stat-value" id="burned-tokens">-</div>
+            </div>
         </div>
 
-        <!-- Transaction Feed -->
         <div class="transaction-feed">
-            <div class="feed-header">
-                <h2 class="feed-title">Live Transactions</h2>
-            </div>
-            <div id="transactions">
-                <!-- Will be populated by JavaScript -->
-            </div>
+            <div class="feed-header">Live Transactions</div>
+            <div id="transactions"></div>
         </div>
 
-        <!-- Token Grid -->
-        <div class="token-grid" id="tokens">
-            <!-- Will be populated by JavaScript -->
-        </div>
+        <div class="attribution" id="attribution"></div>
     </div>
 
     <script>
@@ -65,27 +53,9 @@
             "api.rex.testnet.hyyperlink.com"
         ];
 
-        // Replace the network selection with random selection
-        const nodes = API_ENDPOINTS;
-        const selectedNode = nodes[Math.floor(Math.random() * nodes.length)];
-        
-        // Set initial API base URL using random node
-        let API_BASE = `https://${selectedNode}/api/v1`;
+        const selectedNode = API_ENDPOINTS[Math.floor(Math.random() * API_ENDPOINTS.length)];
+        const API_BASE = `https://${selectedNode}/api/v1`;
 
-        // Add attribution text after successful data load
-        async function initialize() {
-            await Promise.all([
-                loadStats(),
-                loadTransactions(),
-                loadTokens()
-            ]);
-            // Add attribution text after loading
-            const serverName = selectedNode.split('.')[1];
-            document.getElementById('attribution').innerHTML = 
-                `this data was served by <span style="color: #4ade80">${serverName}</span>`;
-        }
-
-        // Utility functions
         function formatNumber(num, decimals = 8) {
             return new Intl.NumberFormat('en-US', {
                 minimumFractionDigits: decimals,
@@ -97,176 +67,70 @@
             return new Date(timestamp / 1000000).toLocaleString();
         }
 
-        function getTransactionType(tx) {
-            if (!tx.changes || tx.changes.length === 0) return 'unknown';
-            const change = tx.changes[0];
-            switch (change.instruction_type) {
-                case 'InstructionMiningReward':
-                    return 'mining';
-                case 'InstructionTransfer':
-                    return 'transfer';
-                case 'InstructionSwapToken':
-                    return 'swap';
-                case 'InstructionCreateToken':
-                    return 'token';
-                case 'InstructionCreateLiquidityPool':
-                    return 'pool';
-                default:
-                    return 'unknown';
-            }
-        }
-
         function getTransactionIcon(type) {
-            switch (type) {
-                case 'mining':
-                    return '👷';
-                case 'transfer':
-                    return '💸';
-                case 'swap':
-                    return '🔄';
-                case 'token':
-                    return '🪙';
-                case 'pool':
-                    return '🌊';
-                default:
-                    return '📦';
+            const icons = {
+                mining: '👷',
+                transfer: '💸',
+                swap: '🔄',
+                token: '🪙',
+                pool: '🌊'
+            };
+            return icons[type] || '📦';
+        }
+
+        async function loadStats() {
+            const response = await fetch(`${API_BASE}/stats`);
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('tx-count').textContent = data.data.transaction_count.toLocaleString();
+                document.getElementById('address-count').textContent = data.data.address_count.toLocaleString();
+                document.getElementById('total-supply').textContent = (100 + data.data.total_supply).toFixed(1) + 'M';
+                document.getElementById('burned-tokens').textContent = formatNumber(data.data.burned_tokens);
             }
         }
 
-        // Load network stats
-        async function loadStats() {
-            try {
-                const response = await fetch(`${API_BASE}/stats`);
-                const data = await response.json();
-                if (data.success) {
-                    const stats = data.data;
-                    document.getElementById('stats').innerHTML = `
-                        <div class="stat-card">
-                            <div class="stat-label">Total Transactions</div>
-                            <div class="stat-value">${stats.transaction_count.toLocaleString()}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total Addresses</div>
-                            <div class="stat-value">${stats.address_count.toLocaleString()}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total Supply</div>
-                            <div class="stat-value" title="${formatNumber(stats.total_supply + 100000000)}">${(100 + stats.total_supply).toFixed(1)}M</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Burned Tokens</div>
-                            <div class="stat-value">${formatNumber(stats.burned_tokens)}</div>
+        async function loadTransactions() {
+            const response = await fetch(`${API_BASE}/transactions/recent?limit=10`);
+            const data = await response.json();
+            if (data.success) {
+                document.getElementById('transactions').innerHTML = data.data.map(tx => {
+                    const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
+                    const amount = type === 'miningreward' ? 
+                        tx.changes[0].amount / 100000000 : 
+                        tx.changes?.[0]?.amount || 0;
+
+                    return `
+                        <div class="transaction">
+                            <div class="tx-icon">${getTransactionIcon(type)}</div>
+                            <div class="tx-details">
+                                <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
+                                <div class="tx-meta">${formatDate(tx.timestamp)} · ${formatNumber(tx.fee)} HYY fee</div>
+                            </div>
+                            <div class="tx-amount">${formatNumber(amount)} HYY</div>
                         </div>
                     `;
-                    document.getElementById('version').textContent = stats.network_version.replace('/hyyperlink/', '');
-                }
-            } catch (error) {
-                console.error('Error loading stats:', error);
+                }).join('');
             }
         }
 
-        // Load transactions
-        async function loadTransactions() {
-            try {
-                const response = await fetch(`${API_BASE}/transactions/recent?limit=10`);
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('transactions').innerHTML = data.data.map(tx => {
-                        const primaryType = tx.changes && tx.changes.length > 0 ? 
-                            getTransactionType(tx) : 'unknown';
-                        
-                        const changesHtml = tx.changes ? tx.changes.map(change => {
-                            const type = change.instruction_type.replace('Instruction', '');
-                            const amount = type === 'MiningReward' ? 
-                                change.amount / 100000000 : // 8 decimals for mining reward
-                                change.amount;
-                            return `
-                                <div class="transaction-change">
-                                    <span class="change-icon">${getTransactionIcon(type.toLowerCase())}</span>
-                                    <div class="change-details">
-                                        <span class="change-amount">${formatNumber(amount)} HYY</span>
-                                        <span class="change-type">${type}</span>
-                                        ${change.to ? `<span>→ <a href="/account.html?address=${change.to}" style="color: inherit; text-decoration: none;">${change.to.substring(0, 8)}...</a></span>` : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('') : '';
-
-                        return `
-                            <div class="transaction" data-type="${primaryType}">
-                                <div class="transaction-icon">
-                                    ${getTransactionIcon(primaryType)}
-                                </div>
-                                <div class="transaction-details">
-                                    <div class="transaction-hash">
-                                        <a href="/transaction.html?hash=${tx.hash}" style="color: inherit; text-decoration: none;">
-                                            ${tx.hash}
-                                        </a>
-                                    </div>
-                                    <div class="transaction-meta">
-                                        <span>${formatDate(tx.timestamp)}</span>
-                                        <span class="transaction-amount">${formatNumber(tx.fee)} HYY fee</span>
-                                    </div>
-                                </div>
-                                <div class="transaction-changes">
-                                    ${changesHtml}
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            } catch (error) {
-                console.error('Error loading transactions:', error);
-            }
-        }
-
-        // Load tokens
-        async function loadTokens() {
-            try {
-                const response = await fetch(`${API_BASE}/tokens`);
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('tokens').innerHTML = data.data.map(token => `
-                        <div class="token-card">
-                            <div class="token-header">
-                                <div class="token-symbol">${token.ticker.substring(0, 2)}</div>
-                                <div class="token-name">${token.name}</div>
-                            </div>
-                            <div class="token-stats">
-                                <div class="token-stat">
-                                    <div class="token-stat-label">Supply</div>
-                                    <div class="token-stat-value">${formatNumber(token.total_supply)}</div>
-                                </div>
-                                <div class="token-stat">
-                                    <div class="token-stat-label">Created</div>
-                                    <div class="token-stat-value">${formatDate(token.created_at)}</div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error loading tokens:', error);
-            }
-        }
-
-        // Search functionality
         document.querySelector('.search-bar').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 const query = e.target.value.trim();
                 if (query) {
-                    if (query.length === 64) {
-                        window.location.href = `/transaction.html?hash=${query}`;
-                    } else {
-                        window.location.href = `/account.html?address=${query}`;
-                    }
+                    window.location.href = query.length === 64 ? 
+                        `/transaction.html?hash=${query}` : 
+                        `/account.html?address=${query}`;
                 }
             }
         });
 
-        initialize();
+        async function initialize() {
+            await Promise.all([loadStats(), loadTransactions()]);
+            document.getElementById('attribution').innerHTML = 
+                `this data was served by <span>${selectedNode.split('.')[1]}</span>`;
+        }
 
-        // Auto-refresh transactions
+        initialize();
         setInterval(loadTransactions, 5000);
     </script>
 </body>
