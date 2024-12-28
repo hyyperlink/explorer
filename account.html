@@ -316,13 +316,29 @@
         `;
         document.head.appendChild(style);
 
-        document.querySelector('.search-bar').addEventListener('keypress', (e) => {
+        // Search functionality
+        document.querySelector('.search-bar').addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 const query = e.target.value.trim();
                 if (query) {
-                    window.location.href = query.length === 64 ? 
-                        `/transaction.html?hash=${query}` : 
-                        `/account.html?address=${query}`;
+                    if (query.length === 64) {
+                        // If 64 chars, it's a transaction hash
+                        window.location.href = `/transaction.html?hash=${query}`;
+                    } else {
+                        // Try to fetch as token first
+                        try {
+                            const response = await fetch(`${API_BASE}/token/${query}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                window.location.href = `/token.html?id=${query}`;
+                                return;
+                            }
+                        } catch (error) {
+                            console.error('Error checking token:', error);
+                        }
+                        // If not a token, treat as account address
+                        window.location.href = `/account.html?address=${query}`;
+                    }
                 }
             }
         });
