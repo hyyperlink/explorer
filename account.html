@@ -132,12 +132,12 @@
                                     <a href="/transaction.html?hash=${tx.hash}" class="tx-hash">${tx.hash}</a>
                                     <div class="tx-meta">
                                         ${formatDate(tx.timestamp)} · 
-                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee · 
+                                        <span style="color: var(--accent-primary)">${formatNumber(tx.fee / 100000000)} HYY</span> fee · 
                                         <span style="color: var(--accent-secondary)">${type}</span>
                                     </div>
                                 </div>
                                 <div class="tx-amount" style="color: var(--accent-primary)">
-                                    ${formatNumber(tx.changes?.[0]?.amount || 0)} HYY
+                                    ${formatNumber((tx.changes?.[0]?.amount || 0) / 100000000)} HYY
                                 </div>
                             </div>
                         `;
@@ -155,7 +155,7 @@
                     `;
 
                     document.getElementById('history').innerHTML = html;
-                    currentTransactionCursor = nextCursor;
+                    currentTransactionCursor = cursor;
                 }
 
                 document.getElementById('attribution').innerHTML = 
