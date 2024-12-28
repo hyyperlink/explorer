@@ -161,6 +161,9 @@
                         return;
                     }
 
+                    // Sort transactions by timestamp in descending order (most recent first)
+                    transactions.sort((a, b) => b.timestamp - a.timestamp);
+
                     let transactionPromises = transactions.map(async tx => {
                         const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                         const change = tx.changes?.[0];

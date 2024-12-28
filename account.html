@@ -148,6 +148,9 @@
                         return;
                     }
 
+                    // Sort transactions by timestamp in descending order (most recent first)
+                    cachedTransactions.sort((a, b) => b.timestamp - a.timestamp);
+
                     displayCurrentPage();
                 }
 
