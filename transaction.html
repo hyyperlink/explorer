@@ -173,7 +173,9 @@
 
                         // Format amount based on decimals
                         const amount = change.amount / Math.pow(10, tokenDecimals);
-                        amountDisplay = `${formatNumber(amount)} ${symbol}`;
+                        amountDisplay = `${formatNumber(amount)} ${data.token_address ? 
+                            `<a href="/token.html?id=${data.token_address.replace('tok:', '')}" style="text-decoration: none; color: inherit">${symbol}</a>` 
+                            : symbol}`;
 
                         return `
                             <div class="transaction" data-type="${type}">
