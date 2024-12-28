@@ -136,7 +136,7 @@
                                 <div class="tx-hash">${tx.hash}</div>
                                 <div class="tx-meta">
                                     ${formatDate(tx.timestamp)} · 
-                                    <span style="color: var(--accent-primary)">${formatNumber(tx.fee)} HYY</span> fee ·
+                                    <span style="color: var(--accent-primary)">${formatNumber(tx.fee / 100000000)} HYY</span> fee ·
                                     From: <a href="/account.html?address=${tx.from}" class="address" style="text-decoration: none;">${tx.from}</a>
                                 </div>
                             </div>
