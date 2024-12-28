@@ -106,10 +106,23 @@
         }
 
         async function loadTransactions() {
-                const response = await fetch(`${API_BASE}/transactions/recent?limit=10`);
+                const response = await fetch(`${API_BASE}/transactions/recent?page_size=10`);
                 const data = await response.json();
                 if (data.success) {
-                    document.getElementById('transactions').innerHTML = data.data.transactions.map(tx => {
+                    const transactions = data.data.transactions || [];
+                    
+                    if (transactions.length === 0) {
+                        document.getElementById('transactions').innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-icon">📦</div>
+                                <div class="empty-text">No transactions yet</div>
+                                <div class="empty-subtext">Transactions will appear here</div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    document.getElementById('transactions').innerHTML = transactions.map(tx => {
                     const type = tx.changes?.[0]?.instruction_type.replace('Instruction', '').toLowerCase() || 'unknown';
                     const change = tx.changes?.[0];
                     
@@ -178,12 +191,9 @@
             const response = await fetch(`${API_BASE}/pools?page_size=4`);
             const data = await response.json();
             if (data.success) {
-                // Sort by TVL and take top 4
-                const topPools = data.data.pools
-                    .sort((a, b) => b.tvl - a.tvl)
-                    .slice(0, 4);
+                const pools = data.data.pools || [];
 
-                if (topPools.length === 0) {
+                if (pools.length === 0) {
                     document.getElementById('pools').innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon">🌊</div>
@@ -193,6 +203,9 @@
                     `;
                     return;
                 }
+
+                // Sort by TVL
+                const topPools = pools.sort((a, b) => b.tvl - a.tvl);
 
                 document.getElementById('pools').innerHTML = topPools.map(pool => `
                     <div class="pool-card">
@@ -215,7 +228,7 @@
             const response = await fetch(`${API_BASE}/tokens?page_size=4`);
             const data = await response.json();
             if (data.success) {
-                const tokens = data.data.tokens;
+                const tokens = data.data.tokens || [];
 
                 if (tokens.length === 0) {
                     document.getElementById('tokens').innerHTML = `
