@@ -123,8 +123,11 @@
                 if (data.success) {
                 document.getElementById('tx-count').textContent = data.data.transaction_count.toLocaleString();
                 document.getElementById('address-count').textContent = data.data.address_count.toLocaleString();
-                document.getElementById('total-supply').textContent = (100 + data.data.total_supply).toFixed(1) + 'M';
-                document.getElementById('burned-tokens').textContent = formatNumber(data.data.burned_tokens);
+                // Calculate actual supply: 100M (in atomic units) + mining rewards - burned tokens
+                const baseSupply = 100000000 * Math.pow(10, 8); // 100M with 8 decimal places
+                const currentSupply = (baseSupply + data.data.total_supply - data.data.burned_tokens) / Math.pow(10, 8);
+                document.getElementById('total-supply').textContent = formatNumber(currentSupply) + ' HYY';
+                document.getElementById('burned-tokens').textContent = formatNumber(data.data.burned_tokens / Math.pow(10, 8));
             }
         }
 
